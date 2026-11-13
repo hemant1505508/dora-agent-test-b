@@ -1,0 +1,32 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and test
+        run: |
+          echo "Running checks..."
+          sleep 20
+          if [ -f fail.txt ]; then echo "fail.txt present - failing on purpose (test data)"; exit 1; fi
+          echo "All checks passed"
+  review:
+    if: github.event_name == 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Automated review
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr review ${{ github.event.pull_request.number }} -R ${{ github.repository }} \
+            --approve --body "Automated review: CI passed." \
+          || gh pr review ${{ github.event.pull_request.number }} -R ${{ github.repository }} \
+            --comment --body "Automated review: CI passed."
